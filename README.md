@@ -1,5 +1,5 @@
-### Colorifix Technical Test
-# Ebrahim Jahanshiri
+# Colorifix Technical Test
+### Ebrahim Jahanshiri
 
 Due to time constraints, I am going to build an app with Dash. Our application requires two inputs from the user, so there should be two buttons to upload two CSV files "Calibration" and "Sample". The user will upload the two CSV files into the system. The system will then calculate absorption coeficient and plot agains different dilutions in the sample. It will also draw a coeificent plot for the blanks. The system will also create a table for optimum absorption coeficient for each dilution level. It will then calculates the concentration of the pigment for the sample data (both X1 and blank). 
 

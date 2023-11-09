@@ -2,36 +2,49 @@ import base64
 import io
 
 import dash
+import dash_bootstrap_components as dbc
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import pandas as pd
 import plotly.graph_objs as go
+import dash_table
 
-# Initialize the Dash app
-app = dash.Dash(__name__)
+# Initialize the Dash app with Bootstrap theme
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Define the app layout
+# Define the app layout with two columns
 app.layout = html.Div([
-    html.Div([
-        # Calibration file upload
+    # Column for data upload with a title
+    dbc.Col([
+        html.H3('Upload Data'),
         dcc.Upload(
             id='upload-calibration',
             children=html.Button('Calibration'),
             multiple=False
         ),
-        # Sample file upload
         dcc.Upload(
             id='upload-sample',
             children=html.Button('Sample'),
             multiple=False
         ),
-    ], style={'width': '30%', 'float': 'left', 'display': 'inline-block'}),
+    ], width=3, style={'padding': '20px'}),
 
-    html.Div([
-        # Plot area
-        dcc.Graph(id='output-data-upload'),
-    ], style={'width': '70%', 'display': 'inline-block', 'float': 'right'}),
-])
+    # Column for output graphs and data table arranged in Bootstrap tabs
+    dbc.Col([
+        dbc.Tabs([
+            dbc.Tab(label="Modelling", children=[
+                html.Div(
+                    [dcc.Graph(id=f'output-data-upload-{i}', style={'width': '25%', 'display': 'inline-block'}) 
+                     for i in range(8)],
+                    style={'display': 'flex', 'flex-wrap': 'wrap'}
+                ),
+            ]),
+            dbc.Tab(label="Output", children=[
+                dash_table.DataTable(id='calibration-table'),
+            ]),
+        ]),
+    ], width=9, style={'padding': '20px'}),
+], className='row')
 
 
 def parse_contents(contents, filename):
@@ -46,37 +59,32 @@ def parse_contents(contents, filename):
 
 
 @app.callback(
-    Output('output-data-upload', 'figure'),
-    [Input('upload-calibration', 'contents'),
-     Input('upload-sample', 'contents')],
-    [State('upload-calibration', 'filename'),
-     State('upload-sample', 'filename')]
+    [Output(f'output-data-upload-{i}', 'figure') for i in range(8)] +
+    [Output('calibration-table', 'data'),
+     Output('calibration-table', 'columns')],
+    [Input('upload-calibration', 'contents')],
+    [State('upload-calibration', 'filename')]
 )
-def update_output(calib_contents, sample_contents, calib_filename, sample_filename):
-    """Update the output plot area based on the uploaded file."""
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        # No file uploaded yet
-        return go.Figure()
-
-    # Determine which button was clicked
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    df = None
-    if button_id == 'upload-calibration' and calib_contents is not None:
+def update_output(calib_contents, calib_filename):
+    """Update the output plot area and table based on the uploaded file."""
+    if calib_contents is not None:
         df = parse_contents(calib_contents, calib_filename)
-    elif button_id == 'upload-sample' and sample_contents is not None:
-        df = parse_contents(sample_contents, sample_filename)
+        # Create multiple figures
+        figures = []
+        for i in range(8):
+            fig = go.Figure(data=[
+                go.Scatter(x=df[df.columns[0]], y=df[df.columns[i % len(df.columns)]], mode='markers')
+            ])
+            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Chart {i+1}')
+            figures.append(fig)
 
-    if df is not None:
-        # Create a Plotly figure
-        fig = go.Figure(data=[
-            go.Scatter(x=df[df.columns[0]], y=df[df.columns[1]], mode='markers')
-        ])
-        fig.update_layout(title='Uploaded Data Visualization')
-        return fig
+        # Prepare data for the table
+        data = df.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in df.columns]
+        return figures + [data, columns]
     else:
-        return go.Figure()
+        # Return empty figures and data if no file is uploaded
+        return [go.Figure() for _ in range(8)] + [[], []]
 
 
 if __name__ == '__main__':
