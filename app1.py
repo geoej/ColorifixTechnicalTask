@@ -68,19 +68,35 @@ def parse_contents(contents, filename):
 def update_output(calib_contents, calib_filename):
     """Update the output plot area and table based on the uploaded file."""
     if calib_contents is not None:
-        df = parse_contents(calib_contents, calib_filename)
+        # Read the calibration file 
+        calib = parse_contents(calib_contents, calib_filename)
+        
+        # Isolating the triplets based on dilusion level and averaging the absorbance
+        calib_avg = calib.groupby(['Sample', 'Dilution']).mean(numeric_only=True)
+        
+        # Calculating the Coeficient of absorption (E)
+        calib_coef = calib_avg.mul(2.302585)
+        
+        # Getting the value of E that maximizes the absorption
+        calib_coef_max = calib_coef.max(axis = 1)
+        calib_coef_max = calib_coef_max.to_frame()
+        print(type(calib_coef_max))
+
+        # Getting representative wavelength for each dilution
+        calib_coef_idmax = calib_coef_max.idxmax(axis=1)
+        
         # Create multiple figures
         figures = []
-        for i in range(8):
+        for i in range(9):
             fig = go.Figure(data=[
-                go.Scatter(x=df[df.columns[0]], y=df[df.columns[i % len(df.columns)]], mode='markers')
+                go.Scatter(x=list(calib_coef.columns), y=calib_coef.iloc[i,], mode='lines')
             ])
-            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Chart {i+1}')
+            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Chart {str(calib_coef.index[i])}')
             figures.append(fig)
 
         # Prepare data for the table
-        data = df.to_dict('records')
-        columns = [{'name': col, 'id': col} for col in df.columns]
+        data = calib.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in calib.columns]
         return figures + [data, columns]
     else:
         # Return empty figures and data if no file is uploaded
