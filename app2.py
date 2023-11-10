@@ -1,5 +1,6 @@
 import base64
 import io
+import requests
 
 import dash
 import dash_bootstrap_components as dbc
@@ -23,12 +24,7 @@ app.layout = html.Div([
             children=html.Button('Calibration'),
             multiple=False
         ),
-        html.H3(''),
-        dcc.Upload(
-            id='upload-sample',
-            children=html.Button('Sample'),
-            multiple=False
-        ),
+        html.H3('Fetching Sample data from Notion API')
     ], width=3, style={'padding': '20px'}),
 
     # Column for output graphs and data table arranged in Bootstrap tabs
@@ -42,9 +38,12 @@ app.layout = html.Div([
                     style={'display': 'flex', 'flex-wrap': 'wrap'}
                 ),
             ]),
+            dbc.Tab(label="Parsed data", children=[
+                dash_table.DataTable(id='parsed-table'),
+            ]),
             dbc.Tab(label="Output", children=[
                 dash_table.DataTable(id='calibration-table'),
-            ]),
+            ])
         ]),
     ], width=9, style={'padding': '20px'}),
 ], className='row')
@@ -62,20 +61,60 @@ def parse_contents(contents, filename):
 
 
 @app.callback(
-    [Output(f'output-data-upload-{i}', 'figure') for i in range(9)] +
-    [Output('calibration-table', 'data'),
-     Output('calibration-table', 'columns')],
-    [Input('upload-calibration', 'contents'),
-     Input('upload-sample', 'contents')],
-    [State('upload-calibration', 'filename'),
-     State('upload-sample', 'filename')]
+    [Output(f'output-data-upload-{i}', 'figure') for i in range(9)],
+    [Output('calibration-table', 'data'), Output('calibration-table', 'columns')],
+    [Output('parsed-table', 'data'), Output('parsed-table', 'columns')],
+    # Inputs
+    [Input('upload-calibration', 'contents')],
+    # States
+    [State('upload-calibration', 'filename')]
 )
-def update_output(calib_contents, sample_contents, calib_filename, sample_filename):
+def update_output(calib_contents, calib_filename):
     """Update the output plot area and table based on the uploaded file."""
-    if (calib_contents is not None) and (sample_contents is not None):
+    if calib_contents is not None:
         # Read the calibration file 
         calib = parse_contents(calib_contents, calib_filename)
-        sample = parse_contents(sample_contents, sample_filename)
+        print(calib)
+        # Getting data from Notion API
+        # API Token and Database ID for Samples
+        api_token = 'secret_jKETolQ4fuWdOb8pwLBwyV1If01N1UhMbeJz8MBNWkJ'
+        database_id = '558261863d3b40d2a2d403748079e37f'
+
+        # The API URL for querying a database
+        url = f'https://api.notion.com/v1/databases/{database_id}/query'
+
+        # Headers for authentication and setting the Notion version
+        headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Notion-Version': '2022-06-28',  
+            'Content-Type': 'application/json'
+        }
+
+        # Make a POST request to query the database
+        response = requests.post(url, headers=headers)
+
+        # Check if the request is successful
+        if response.status_code == 200:
+            data = response.json()
+
+            # Processing the JSON data into a DataFrame
+            rows = []
+            for item in data['results']:
+                # Extracting and processing the data
+                row = {
+                    'Download URL': item['properties']['Download URL']['url'],
+                    'Sample Type': item['properties']['Sample type']['select']['name'],
+                    'Client Name': item['properties']['Client']['select']['name'],
+                }
+                rows.append(row)
+
+            # Createing a DataFrame
+            sample_db = pd.DataFrame(rows)
+            print(sample_db)  # Display the DataFrame
+            print(type(sample_db))
+        else:
+            print(f'Failed to retrieve data: {response.status_code}')
+
         
         # Isolating the triplets based on dilusion level and averaging the absorbance
         calib_avg = calib.groupby(['Sample', 'Dilution']).mean(numeric_only=True)
@@ -94,15 +133,15 @@ def update_output(calib_contents, sample_contents, calib_filename, sample_filena
         # Calculating pigment concentration for sample data
         # First we get the effective wavelength for the specific dilution 
 
-        sample_contents = []
-        sample_results = sample[['Well', 'Sample', 'Dilution']]
-        for i in range(len(sample)):
-            dilution = sample.at[i,'Dilution']
-            if sample.at[i,"Sample"] == 'Blank':
-                sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
-            else:
-                sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
-        sample_results = sample_results.assign(Pigment_concentration = sample_contents)
+        #sample_contents = []
+        #sample_results = sample[['Well', 'Sample', 'Dilution']]
+        #for i in range(len(sample)):
+        #    dilution = sample.at[i,'Dilution']
+        #    if sample.at[i,"Sample"] == 'Blank':
+        #        sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
+        #    else:
+        #        sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
+        #sample_results = sample_results.assign(Pigment_concentration = sample_contents)
 
 
         # Converting coefieicent values to Dataframe for pltting 
@@ -122,10 +161,13 @@ def update_output(calib_contents, sample_contents, calib_filename, sample_filena
             figures.append(fig)
 
         # Prepare data for the table
-        data = sample_results.to_dict('records')
-        columns = [{'name': col, 'id': col} for col in sample_results.columns]
-        return figures + [data, columns]
-    else:
+        calib_data = calib.to_dict('records')
+        calib_columns = [{'name': col, 'id': col} for col in calib.columns]
+
+        parsed_data = sample_db.to_dict('records')
+        parsed_columns = [{'name': col, 'id': col} for col in sample_db.columns]
+
+        return figures + [calib_data, calib_columns, parsed_data, parsed_columns]
         # Return empty figures and data if no file is uploaded
         return [go.Figure() for _ in range(9)] + [[], []]
 
