@@ -32,14 +32,14 @@ app.layout = html.Div([
     # Column for output graphs and data table arranged in Bootstrap tabs
     dbc.Col([
         dbc.Tabs([
-            dbc.Tab(label="Modelling", children=[
+            dbc.Tab(label="Charts", children=[
                 html.Div(
-                    [dcc.Graph(id=f'output-data-upload-{i}', style={'width': '25%', 'display': 'inline-block'}) 
-                     for i in range(9)],
+                    [dcc.Graph(id=f'output-data-upload-{i}', style={'width': '50%', 'display': 'inline-block'}) 
+                     for i in range(8)],
                     style={'display': 'flex', 'flex-wrap': 'wrap'}
                 ),
             ]),
-            dbc.Tab(label="Output", children=[
+            dbc.Tab(label="Calibration Data", children=[
                 dash_table.DataTable(id='calibration-table'),
             ]),
         ]),
@@ -59,7 +59,7 @@ def parse_contents(contents, filename):
 
 
 @app.callback(
-    [Output(f'output-data-upload-{i}', 'figure') for i in range(9)] +
+    [Output(f'output-data-upload-{i}', 'figure') for i in range(8)] +
     [Output('calibration-table', 'data'),
      Output('calibration-table', 'columns')],
     [Input('upload-calibration', 'contents')],
@@ -68,39 +68,23 @@ def parse_contents(contents, filename):
 def update_output(calib_contents, calib_filename):
     """Update the output plot area and table based on the uploaded file."""
     if calib_contents is not None:
-        # Read the calibration file 
-        calib = parse_contents(calib_contents, calib_filename)
-        
-        # Isolating the triplets based on dilusion level and averaging the absorbance
-        calib_avg = calib.groupby(['Sample', 'Dilution']).mean(numeric_only=True)
-        
-        # Calculating the Coeficient of absorption (E)
-        calib_coef = calib_avg.mul(2.302585)
-        
-        # Getting the value of E that maximizes the absorption
-        calib_coef_max = calib_coef.max(axis = 1)
-        calib_coef_max = calib_coef_max.to_frame()
-        print(type(calib_coef_max))
-
-        # Getting representative wavelength for each dilution
-        calib_coef_idmax = calib_coef_max.idxmax(axis=1)
-        
+        df = parse_contents(calib_contents, calib_filename)
         # Create multiple figures
         figures = []
-        for i in range(9):
+        for i in range(8):
             fig = go.Figure(data=[
-                go.Scatter(x=list(calib_coef.columns), y=calib_coef.iloc[i,], mode='lines')
+                go.Scatter(x=df[df.columns[0]], y=df[df.columns[i % len(df.columns)]], mode='markers')
             ])
-            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Coeficient of Absorbance (M−1⋅cm−1 ) {str(calib_coef.index[i])}', title_font=dict(size=9))
+            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Chart {i+1}')
             figures.append(fig)
 
         # Prepare data for the table
-        data = calib.to_dict('records')
-        columns = [{'name': col, 'id': col} for col in calib.columns]
+        data = df.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in df.columns]
         return figures + [data, columns]
     else:
         # Return empty figures and data if no file is uploaded
-        return [go.Figure() for _ in range(9)] + [[], []]
+        return [go.Figure() for _ in range(8)] + [[], []]
 
 
 if __name__ == '__main__':
