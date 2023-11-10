@@ -17,11 +17,13 @@ app.layout = html.Div([
     # Column for data upload with a title
     dbc.Col([
         html.H3('Upload Data'),
+        html.H6('Load Calibration and Sample data:'),
         dcc.Upload(
             id='upload-calibration',
             children=html.Button('Calibration'),
             multiple=False
         ),
+        html.H3(''),
         dcc.Upload(
             id='upload-sample',
             children=html.Button('Sample'),
@@ -33,6 +35,7 @@ app.layout = html.Div([
     dbc.Col([
         dbc.Tabs([
             dbc.Tab(label="Modelling", children=[
+                html.H6('Absorptivity coefficient as a fuction of wavelengths per each dilusion level'),
                 html.Div(
                     [dcc.Graph(id=f'output-data-upload-{i}', style={'width': '25%', 'display': 'inline-block'}) 
                      for i in range(9)],
@@ -62,14 +65,17 @@ def parse_contents(contents, filename):
     [Output(f'output-data-upload-{i}', 'figure') for i in range(9)] +
     [Output('calibration-table', 'data'),
      Output('calibration-table', 'columns')],
-    [Input('upload-calibration', 'contents')],
-    [State('upload-calibration', 'filename')]
+    [Input('upload-calibration', 'contents'),
+     Input('upload-sample', 'contents')],
+    [State('upload-calibration', 'filename'),
+     State('upload-sample', 'filename')]
 )
-def update_output(calib_contents, calib_filename):
+def update_output(calib_contents, sample_contents, calib_filename, sample_filename):
     """Update the output plot area and table based on the uploaded file."""
-    if calib_contents is not None:
+    if (calib_contents is not None) and (sample_contents is not None):
         # Read the calibration file 
         calib = parse_contents(calib_contents, calib_filename)
+        sample = parse_contents(sample_contents, sample_filename)
         
         # Isolating the triplets based on dilusion level and averaging the absorbance
         calib_avg = calib.groupby(['Sample', 'Dilution']).mean(numeric_only=True)
@@ -79,24 +85,45 @@ def update_output(calib_contents, calib_filename):
         
         # Getting the value of E that maximizes the absorption
         calib_coef_max = calib_coef.max(axis = 1)
-        calib_coef_max = calib_coef_max.to_frame()
-        print(type(calib_coef_max))
+        
 
         # Getting representative wavelength for each dilution
-        calib_coef_idmax = calib_coef_max.idxmax(axis=1)
+        calib_coef_idmax = calib_coef.idxmax(axis=1)
+        # print(type(calib_coef_idmax))
         
-        # Create multiple figures
+        # Calculating pigment concentration for sample data
+        # First we get the effective wavelength for the specific dilution 
+
+        sample_contents = []
+        sample_results = sample[['Well', 'Sample', 'Dilution']]
+        for i in range(len(sample)):
+            dilution = sample.at[i,'Dilution']
+            if sample.at[i,"Sample"] == 'Blank':
+                sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
+            else:
+                sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
+        sample_results = sample_results.assign(Pigment_concentration = sample_contents)
+
+
+        # Converting coefieicent values to Dataframe for pltting 
+        calib_coef_max = calib_coef_max.to_frame()
+        calib_coef_idmax = calib_coef_idmax.to_frame()
+
+        # Create multiple figures to show the response of coeficient to wavelength
         figures = []
         for i in range(9):
             fig = go.Figure(data=[
-                go.Scatter(x=list(calib_coef.columns), y=calib_coef.iloc[i,], mode='lines')
+                go.Scatter(x=list(calib_coef.columns), 
+                           y=calib_coef.iloc[i,], mode='lines')
             ])
-            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), title=f'Coeficient of Absorbance (M−1⋅cm−1 ) {str(calib_coef.index[i])}', title_font=dict(size=9))
+            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), 
+                              title=f'Coeficient of Absorbance (M−1⋅cm−1 ) {str(calib_coef.index[i])}',
+                                title_font=dict(size=9))
             figures.append(fig)
 
         # Prepare data for the table
-        data = calib.to_dict('records')
-        columns = [{'name': col, 'id': col} for col in calib.columns]
+        data = sample_results.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in sample_results.columns]
         return figures + [data, columns]
     else:
         # Return empty figures and data if no file is uploaded
