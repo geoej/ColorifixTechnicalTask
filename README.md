@@ -3,7 +3,7 @@
 
 
 #### :computer: The setup
-Due to time constraints, I am going to build the app with <code> Dash </code> :blush: There are two apps app1.py and app2.py corresponding to the two parts of the assignment. To run the apps, you will need to setup your enviornment make sure you have dash, dash_bootstrap_components, pandas, plotly.graph_objs and dash_table installed. The environment is set with poetry to make it easier to track the versions and packages. 
+Due to time constraints, I am going to build the app with Dash :blush: There are two apps app1.py and app2.py corresponding to the two parts of the assignment. To run the apps, you will need to setup your enviornment make sure you have dash, dash_bootstrap_components, pandas, plotly.graph_objs and dash_table installed. The environment is set with poetry to make it easier to track the versions and packages. 
 
 :bell: The app1 application requires two inputs from the user, "Calibration" and "Sample" in CSV format. 
 The system will then calculate absorption coeficient and plots them against different dilutions in the sample. It will also draw a coeificent plot for the Blanks. The 
