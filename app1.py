@@ -92,16 +92,27 @@ def update_output(calib_contents, sample_contents, calib_filename, sample_filena
         # print(type(calib_coef_idmax))
         
         # Calculating pigment concentration for sample data
-        # First we get the effective wavelength for the specific dilution 
-
+        
+        # Empty container for the results
         sample_contents = []
+       
+        # Subsetting metadata
         sample_results = sample[['Well', 'Sample', 'Dilution']]
+       
+        # For each sample calculate get the coefiecient at the Dilution level and calculate the content
         for i in range(len(sample)):
+            # Get the diulution of the sample 
             dilution = sample.at[i,'Dilution']
+
+            # If it is Black sample, get the maximum coefieint from the calibration data
             if sample.at[i,"Sample"] == 'Blank':
+
+                # Calculate sample content
                 sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
             else:
                 sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
+        
+        # Aggregate all the results
         sample_results = sample_results.assign(Pigment_concentration = sample_contents)
 
 

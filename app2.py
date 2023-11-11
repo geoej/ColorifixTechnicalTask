@@ -33,7 +33,8 @@ app.layout = html.Div([
             dbc.Tab(label="Modelling", children=[
                 html.H6('Absorptivity coefficient as a fuction of wavelengths per each dilusion level'),
                 html.Div(
-                    [dcc.Graph(id=f'output-data-upload-{i}', style={'width': '25%', 'display': 'inline-block'}) 
+                    [dcc.Graph(id=f'output-data-upload-{i}', 
+                               style={'width': '25%', 'display': 'inline-block'}) 
                      for i in range(9)],
                     style={'display': 'flex', 'flex-wrap': 'wrap'}
                 ),
@@ -74,7 +75,8 @@ def update_output(calib_contents, calib_filename):
     if calib_contents is not None:
         # Read the calibration file 
         calib = parse_contents(calib_contents, calib_filename)
-        print(calib)
+        
+        #print(calib)
         # Getting data from Notion API
         # API Token and Database ID for Samples
         api_token = 'secret_jKETolQ4fuWdOb8pwLBwyV1If01N1UhMbeJz8MBNWkJ'
@@ -110,8 +112,8 @@ def update_output(calib_contents, calib_filename):
 
             # Createing a DataFrame
             sample_db = pd.DataFrame(rows)
-            print(sample_db)  # Display the DataFrame
-            print(type(sample_db))
+            #print(sample_db)  # Display the DataFrame
+            #print(type(sample_db))
         else:
             print(f'Failed to retrieve data: {response.status_code}')
 
@@ -121,27 +123,52 @@ def update_output(calib_contents, calib_filename):
         
         # Calculating the Coeficient of absorption (E)
         calib_coef = calib_avg.mul(2.302585)
-        
+        print(calib_coef)
+
         # Getting the value of E that maximizes the absorption
         calib_coef_max = calib_coef.max(axis = 1)
-        
+        print(calib_coef_max)
 
         # Getting representative wavelength for each dilution
         calib_coef_idmax = calib_coef.idxmax(axis=1)
-        # print(type(calib_coef_idmax))
+        print(calib_coef_idmax)
+        print(type(calib_coef_idmax))
         
         # Calculating pigment concentration for sample data
         # First we get the effective wavelength for the specific dilution 
 
-        #sample_contents = []
-        #sample_results = sample[['Well', 'Sample', 'Dilution']]
+        from io import StringIO
+
+        # Get the url of the CSV file
+        file_url = sample_db.loc[0][0]
+
+        # Use requests to get the content
+        r = requests.get(file_url, verify=False)  # Setting verify=False disables SSL verification
+        data = StringIO(r.text)
+
+        # R
+        sample = pd.read_csv(data)
+        
+        # Subset metadata
+        sample_results = sample[['Sample', 'Dilution']]
+        
+        # Empty container for the results
+        sample_contents = []
+            
+        # Calculating the sample contents ---> fails
         #for i in range(len(sample)):
         #    dilution = sample.at[i,'Dilution']
+        #    print(dilution)
         #    if sample.at[i,"Sample"] == 'Blank':
-        #        sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
+                
+        #        sample_contents.append(sample.iloc[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
         #    else:
-        #        sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
+        #        print(calib_coef_idmax[('S1', dilution)])
+        #        print(sample.at[i, calib_coef_idmax[('S1', dilution)]])
+        #        sample_contents.append(sample.iloc[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
         #sample_results = sample_results.assign(Pigment_concentration = sample_contents)
+        #print(sample_results)
+        #print(sample_contents)
 
 
         # Converting coefieicent values to Dataframe for pltting 
