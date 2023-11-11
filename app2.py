@@ -82,7 +82,7 @@ def update_output(calib_contents, calib_filename):
         api_token = 'secret_jKETolQ4fuWdOb8pwLBwyV1If01N1UhMbeJz8MBNWkJ'
         database_id = '558261863d3b40d2a2d403748079e37f'
 
-        # The API URL for querying a database
+        # The API test URL for querying a database
         url = f'https://api.notion.com/v1/databases/{database_id}/query'
 
         # Headers for authentication and setting the Notion version
@@ -143,7 +143,7 @@ def update_output(calib_contents, calib_filename):
         file_url = sample_db.loc[0][0]
 
         # Use requests to get the content
-        r = requests.get(file_url, verify=False)  # Setting verify=False disables SSL verification
+        r = requests.get(file_url, verify=False)  
         data = StringIO(r.text)
 
         # R
@@ -161,7 +161,8 @@ def update_output(calib_contents, calib_filename):
         #    print(dilution)
         #    if sample.at[i,"Sample"] == 'Blank':
                 
-        #        sample_contents.append(sample.iloc[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
+        #        sample_contents.append(sample.iloc[i, calib_coef_idmax[('Blank', dilution)]] / 
+        #                               calib_coef_max.loc[('Blank', dilution)])
         #    else:
         #        print(calib_coef_idmax[('S1', dilution)])
         #        print(sample.at[i, calib_coef_idmax[('S1', dilution)]])

@@ -18,7 +18,7 @@ $E = 2,302585 Absorption / thickness$, Where $loge = 0.4342944819$.
 The app will calculate E for each dilusion and plot them against the wavelength to find the maximum absorption for that dilusion (it can absorb light more efficiently). 
 it will then take the value for E and calculate the pigment concentration for the corresponding dilusion in the sample dataset. 
 
-:information_source: Representative wavelength is chosen a the wavelenght that has the highest absorptivity. Since the pigment type is the same for both calibration and sample data, we can then calculate the coeficient for each wavelength and each dilusion. Then given that `E` is known for each dilusion, we will calculate the concentration value for each sample based on the `E`` value for each dilusion and the creates the results as a table. 
+:information_source: Representative wavelength is chosen a the wavelenght that has the highest absorptivity. Since the pigment type is the same for both calibration and sample data, we can then calculate the coeficient for each wavelength and each dilusion. Then given that `E` is known for each dilusion, we will calculate the concentration value for each sample based on the `E` value for each dilusion and the creates the results as a table. 
 
 We will then use the calibrated model to calculate the concentration (c) for each sample. 
 
@@ -30,7 +30,7 @@ App2 needs to be optimised and debugged to ratify the issue of non-conformity wi
 :two: app2 doesn't produce the results of pigment concentrations for the API samples at the moment. What needs to be done is:  
 - Recetify the issue of indexing the sample data (sample-db) fetched from the API: at the moment this bug prevents the development of other parts of app2. 
 - Create a loop to caluclate the sample pigment concentration based on the Coeficient E that is calibrated from the calibration data. The output is a dataframe of shape(3, 3). 
-- A good way to store the output is to create a SQL database with the following structure:
+- A good way to store the output is to create a `SQL` database with the following structure:
     - Slice the sample CSV files to contain only metadata information (sample, dilution, and pigment concentration)
     - Assign SampleID primary key in each of 27 sample datasets. 
     - Assign the Dye house name and Sample type as foreign key. 

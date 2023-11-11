@@ -60,7 +60,6 @@ def parse_contents(contents, filename):
     else:
         raise ValueError('File format not supported')
 
-
 @app.callback(
     [Output(f'output-data-upload-{i}', 'figure') for i in range(9)] +
     [Output('calibration-table', 'data'),
@@ -108,9 +107,11 @@ def update_output(calib_contents, sample_contents, calib_filename, sample_filena
             if sample.at[i,"Sample"] == 'Blank':
 
                 # Calculate sample content
-                sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / calib_coef_max.loc[('Blank', dilution)])
+                sample_contents.append(sample.at[i, calib_coef_idmax[('Blank', dilution)]] / 
+                                       calib_coef_max.loc[('Blank', dilution)])
             else:
-                sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / calib_coef_max.loc[('S1', dilution)])
+                sample_contents.append(sample.at[i, calib_coef_idmax[('S1', dilution)]] / 
+                                       calib_coef_max.loc[('S1', dilution)])
         
         # Aggregate all the results
         sample_results = sample_results.assign(Pigment_concentration = sample_contents)
@@ -128,7 +129,8 @@ def update_output(calib_contents, sample_contents, calib_filename, sample_filena
                            y=calib_coef.iloc[i,], mode='lines')
             ])
             fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), 
-                              title=f'Coeficient of Absorbance (M−1⋅cm−1 ) {str(calib_coef.index[i])}',
+                              title=f'Coeficient of Absorbance (M−1⋅cm−1 ) 
+                              {str(calib_coef.index[i])}',
                                 title_font=dict(size=9))
             figures.append(fig)
 
