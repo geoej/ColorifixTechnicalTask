@@ -32,8 +32,8 @@ App2 needs to be optimised and debugged to ratify the issue of non-conformity wi
 - Create a loop to caluclate the sample pigment concentration based on the Coeficient E that is calibrated from the calibration data. The output is a dataframe of shape(3, 3). 
 - A good way to store the output is to create a `SQL` database with the following structure:
     - Slice the sample CSV files to contain only metadata information (sample, dilution, and pigment concentration)
-    - Assign SampleID 'primary key' in each of 27 sample datasets. 
-    - Assign the Dye house name and Sample type as 'foreign key'. 
+    - Assign SampleID `primary key` in each of 27 sample datasets. 
+    - Assign the Dye house name and Sample type as `foreign key`. 
 
 
 :green_book: Refrences:
